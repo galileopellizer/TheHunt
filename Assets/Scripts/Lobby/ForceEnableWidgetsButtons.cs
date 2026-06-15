@@ -5,24 +5,43 @@ using UnityEngine.UI;
 
 public class ForceEnableWidgetsButtons : MonoBehaviour
 {
-    [SerializeField] private int framesDelay = 2;
-    private int framesLeft;
+    [SerializeField] private float retryDuration = 3f;  // keep retrying for this many seconds
+    [SerializeField] private float retryInterval  = 0.2f;
+    private float retryTimer;
+    private float nextRetry;
 
     private void OnEnable()
     {
-        framesLeft = Mathf.Max(0, framesDelay);
+        retryTimer = retryDuration;
+        nextRetry  = 0f;
     }
 
     private void Update()
     {
-        if (framesLeft > 0)
-        {
-            framesLeft--;
-            return;
-        }
+        if (retryTimer <= 0f) { enabled = false; return; }
 
-        ForceEnable();
-        enabled = false;
+        retryTimer -= Time.deltaTime;
+
+        // Stop immediately if a session is being joined/created
+        if (IsSessionActive()) { enabled = false; return; }
+
+        if (Time.time >= nextRetry)
+        {
+            nextRetry = Time.time + retryInterval;
+            ForceEnable();
+        }
+    }
+
+    private static bool IsSessionActive()
+    {
+        try
+        {
+            var managerType = Type.GetType("Unity.Multiplayer.Widgets.SessionManager, Unity.Multiplayer.Widgets");
+            var managerInstance = managerType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            var activeSession = managerType?.GetField("m_ActiveSession", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(managerInstance);
+            return activeSession != null;
+        }
+        catch { return false; }
     }
 
     private static void ForceEnable()

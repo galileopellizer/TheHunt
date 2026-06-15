@@ -106,8 +106,10 @@ public class SoundOrbVisual : MonoBehaviour
 
         bool enraged = roundManager != null && roundManager.Phase.Value == GamePhase.Enrage;
 
-        // Scale sensing with monster progression — more effigies burned = sharper senses
+        // Scale sensing with monster progression + passive stealth bonus
         float senseMult = roundManager != null ? roundManager.MonsterSpeedMultiplier.Value : 1f;
+        if (MonsterStealth.LocalMonsterStealth != null)
+            senseMult *= MonsterStealth.LocalMonsterStealth.CurrentSenseMultiplier;
 
         float scaledRunDist   = runMaxDistance   * senseMult;
         float scaledWalkDist  = walkMaxDistance  * senseMult;

@@ -68,6 +68,14 @@ public class DeathFreeCam : NetworkBehaviour
         freeCam.flySpeed         = flySpeed;
         freeCam.fastMultiplier   = fastMultiplier;
 
+        // Add a local-only bright light so the dead player can see in the dark.
+        // This light only exists on this client — other players are unaffected.
+        var ghostLight = playerCamera.gameObject.AddComponent<Light>();
+        ghostLight.type      = LightType.Point;
+        ghostLight.range     = 200f;
+        ghostLight.intensity = 10f;
+        ghostLight.color     = new Color(0.85f, 0.9f, 1f); // cool white
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
     }

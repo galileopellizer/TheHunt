@@ -18,12 +18,31 @@ public class LobbyPlayerSlotUI : MonoBehaviour
     private CharacterPreviewRig rigInstance;
     private RenderTexture rt;
     private PlayerNameState boundNameState;
+    private GameObject[] boundCharacterPrefabs;
 
-    public void Setup(string name, GameObject modelPrefab, PlayerNameState nameState = null)
+    // Each slot gets a unique world-space pocket so cameras don't see each other's models
+    private static int _nextSlot = 0;
+    private int _mySlot = -1;
+    private static readonly Vector3 SlotSpacing = new Vector3(500f, 0f, 0f);
+    private static readonly Vector3 SlotOrigin  = new Vector3(0f, -9000f, 0f);
+
+    public void Setup(string name, GameObject[] prefabs, PlayerNameState nameState = null)
     {
+        boundCharacterPrefabs = prefabs;
         playerName.text = name;
         BindNameState(nameState);
-        SetCharacterModel(modelPrefab);
+
+        // Pick initial model — may already be correct or will update via OnValueChanged
+        int charIdx = nameState != null ? nameState.CharacterIndex.Value : 0;
+        var prefab = (prefabs != null && charIdx < prefabs.Length) ? prefabs[charIdx]
+            : (prefabs != null && prefabs.Length > 0 ? prefabs[0] : null);
+        if (prefab != null) SetCharacterModel(prefab);
+    }
+
+    // Legacy overload so existing callers still compile
+    public void Setup(string name, GameObject modelPrefab, PlayerNameState nameState = null)
+    {
+        Setup(name, modelPrefab != null ? new[] { modelPrefab } : null, nameState);
     }
 
     private void BindNameState(PlayerNameState nameState)
@@ -31,6 +50,7 @@ public class LobbyPlayerSlotUI : MonoBehaviour
         if (boundNameState != null)
         {
             boundNameState.PlayerName.OnValueChanged -= HandleNameChanged;
+            boundNameState.CharacterIndex.OnValueChanged -= HandleCharIndexChanged;
         }
 
         boundNameState = nameState;
@@ -38,12 +58,19 @@ public class LobbyPlayerSlotUI : MonoBehaviour
         if (boundNameState != null)
         {
             if (boundNameState.PlayerName.Value.Length > 0)
-            {
                 playerName.text = boundNameState.PlayerName.Value.ToString();
-            }
 
             boundNameState.PlayerName.OnValueChanged += HandleNameChanged;
+            boundNameState.CharacterIndex.OnValueChanged += HandleCharIndexChanged;
         }
+    }
+
+    private void HandleCharIndexChanged(int previous, int current)
+    {
+        if (boundCharacterPrefabs == null || boundCharacterPrefabs.Length == 0) return;
+        int idx = Mathf.Clamp(current, 0, boundCharacterPrefabs.Length - 1);
+        var prefab = boundCharacterPrefabs[idx];
+        if (prefab != null) SetCharacterModel(prefab);
     }
 
     private void HandleNameChanged(FixedString32Bytes previous, FixedString32Bytes current)
@@ -62,7 +89,9 @@ public class LobbyPlayerSlotUI : MonoBehaviour
         rt.Create();
         portrait.texture = rt;
 
+        if (_mySlot < 0) _mySlot = _nextSlot++;
         rigInstance = Instantiate(previewRigPrefab);
+        rigInstance.transform.position = SlotOrigin + SlotSpacing * _mySlot;
         rigInstance.SetTargetTexture(rt);
 
         // Spawn model
@@ -106,8 +135,10 @@ public class LobbyPlayerSlotUI : MonoBehaviour
         if (boundNameState != null)
         {
             boundNameState.PlayerName.OnValueChanged -= HandleNameChanged;
+            boundNameState.CharacterIndex.OnValueChanged -= HandleCharIndexChanged;
         }
 
         CleanupPreview();
+        _nextSlot = 0; // reset so slots stay compact across lobby rebuilds
     }
 }

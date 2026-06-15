@@ -20,6 +20,15 @@ public class FreeCamController : MonoBehaviour
 
     private void Update()
     {
+        // Stop movement when game is over so the end screen is usable
+        var roundManager = FindObjectOfType<GameRoundManager>();
+        if (roundManager != null && roundManager.Phase.Value == GamePhase.GameOver)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            return;
+        }
+
         var settings = FindObjectOfType<SettingsMenu>();
         if (settings != null && settings.IsOpen) return;
 

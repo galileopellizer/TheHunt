@@ -12,9 +12,6 @@ GameObject:
   - component: {fileID: 3631415515452790537}
   - component: {fileID: 3774676209818124496}
   - component: {fileID: 2136541621637989994}
-  - component: {fileID: 3881249222480925700}
-  - component: {fileID: -69969684314365114}
-  - component: {fileID: -8292574338910130046}
   m_Layer: 6
   m_Name: HumanModel
   m_TagString: Untagged
@@ -115,64 +112,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3881249222480925700
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 845040467536217768}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 58db90854f044a340a17fabf0beadf3e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  roleState: {fileID: 0}
-  ownerNetworkObject: {fileID: 0}
---- !u!114 &-69969684314365114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 845040467536217768}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e327ccde2e205229993190cbe9657f6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  orbShaderName: Hidden/SoundOrb
-  walkSpeedThreshold: 0.4
-  walkMaxDistance: 25
-  walkBaseIntensity: 0.45
-  walkOrbScale: 0.6
-  runMaxDistance: 40
-  runBaseIntensity: 2
-  runOrbScale: 1
-  heartbeatMaxDistance: 20
-  heartbeatBPM: 70
-  heartbeatPanicBPM: 160
-  heartbeatPanicDist: 8
-  heartbeatIntensity: 0.6
-  fadeSpeed: 8
-  orbOffset: {x: 0, y: 0, z: 0}
---- !u!114 &-8292574338910130046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 845040467536217768}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: caa1b9cc547eee749a5316be0c6cc800, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  heartbeatClip: {fileID: 8300000, guid: dacdcae0eabb136c4a8b4a30e254be71, type: 3}
-  volume: 0.6
-  panicStartDist: 10
-  basePitch: 1
-  panicPitch: 1.8
 --- !u!1 &3844195419635752181
 GameObject:
   m_ObjectHideFlags: 0

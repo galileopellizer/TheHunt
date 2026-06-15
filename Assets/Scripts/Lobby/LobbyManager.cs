@@ -11,7 +11,7 @@ public class LobbyManager : NetworkBehaviour
     public Transform playerListParent;
     public GameObject playerEntryPrefab;
     public GameObject startButton;
-    public GameObject defaultCharacterPrefab;
+    public GameObject[] characterPrefabs;
     
     private readonly List<GameObject> entries = new();
 
@@ -31,9 +31,7 @@ public class LobbyManager : NetworkBehaviour
         
         // IMPORTANT: force initial sync
         if (IsServer)
-        {
-            UpdatePlayerListClientRpc();
-        }
+            UpdatePlayerList();
 
     }
 
@@ -43,45 +41,46 @@ public class LobbyManager : NetworkBehaviour
         if (NetworkManager.Singleton == null) return;
         if (!NetworkManager.Singleton.IsListening) return;
 
-        {
-            UpdatePlayerListClientRpc();
-        }
+        StartCoroutine(DelayedUpdatePlayerList());
+    }
+
+    private System.Collections.IEnumerator DelayedUpdatePlayerList()
+    {
+        yield return new WaitForSeconds(0.3f);
+        UpdatePlayerList();
     }
 
         
+    private void UpdatePlayerList()
+    {
+        if (!IsServer) return;
+        UpdatePlayerListClientRpc();
+    }
+
     [ClientRpc]
     private void UpdatePlayerListClientRpc()
     {
-        RebuildPlayerList();
-    }
-
-    void RebuildPlayerList()
-    {
-        if (!NetworkManager.Singleton || !NetworkManager.Singleton.IsListening)
-            return;
-        
         foreach (var e in entries) Destroy(e);
         entries.Clear();
 
+        var allNameStates = FindObjectsOfType<PlayerNameState>();
         int index = 1;
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        foreach (var ns in allNameStates)
         {
             var entry = Instantiate(playerEntryPrefab, playerListParent);
+            var slot  = entry.GetComponent<LobbyPlayerSlotUI>();
 
-            var slot = entry.GetComponent<LobbyPlayerSlotUI>();
-            string displayName = $"Player {index}";
-            PlayerNameState nameState = null;
-            if (client.PlayerObject != null)
-            {
-                nameState = client.PlayerObject.GetComponent<PlayerNameState>();
-                if (nameState != null && nameState.PlayerName.Value.Length > 0)
-                {
-                    displayName = nameState.PlayerName.Value.ToString();
-                }
-            }
+            string displayName = ns.PlayerName.Value.Length > 0
+                ? ns.PlayerName.Value.ToString()
+                : $"Player {index}";
 
-            slot.Setup(displayName, defaultCharacterPrefab, nameState);
+            // Deterministic: ClientId % count — same result on every machine, no sync needed
+            int charIdx = ns.GetCharacterIndex();
+            var prefab = (characterPrefabs != null && charIdx < characterPrefabs.Length)
+                ? characterPrefabs[charIdx]
+                : (characterPrefabs != null && characterPrefabs.Length > 0 ? characterPrefabs[0] : null);
 
+            slot.Setup(displayName, prefab, null);
             entries.Add(entry);
             index++;
         }
@@ -105,7 +104,7 @@ public class LobbyManager : NetworkBehaviour
             roleState.Role.Value = (i == monsterIndex) ? PlayerRole.Monster : PlayerRole.Human;
         }
 
-        NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene(MapSettings.SelectedScene, LoadSceneMode.Single);
     }
 
 

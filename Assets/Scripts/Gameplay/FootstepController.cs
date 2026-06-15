@@ -35,7 +35,7 @@ public class FootstepController : NetworkBehaviour
     [SerializeField] private SurfaceFootsteps[] surfaces;
 
     [Header("Terrain Mapping")]
-    [Tooltip("Map each terrain texture layer index to a surface type.")]
+    [Tooltip("Fallback if the terrain has no TerrainSurfaceMap component.")]
     [SerializeField] private TerrainLayerMapping[] terrainMappings;
 
     [Header("Collider Tag Mapping")]
@@ -118,7 +118,16 @@ public class FootstepController : NetworkBehaviour
             horizontalSpeed = smoothedRemoteSpeed;
         }
 
-        if (horizontalSpeed < speedThreshold)
+        // Suppress monster 3D footsteps during active stealth
+        bool monsterActiveStealth = false;
+        if (bodyRole != null && bodyRole.Role.Value == PlayerRole.Monster)
+        {
+            var stealth = GetComponent<MonsterStealth>();
+            if (stealth != null && stealth.IsActiveInvisible.Value)
+                monsterActiveStealth = true;
+        }
+
+        if (horizontalSpeed < speedThreshold || monsterActiveStealth)
         {
             if (wasMoving)
             {
@@ -145,23 +154,23 @@ public class FootstepController : NetworkBehaviour
                 running = horizontalSpeed > runEnterThreshold;
         }
 
-        // Only re-check surface every 0.5s to avoid constant clip switching
+        // Re-check surface every 0.5s
+        SurfaceType currentSurface = lastSurface;
         if (Time.time > nextSurfaceCheckTime)
         {
-            lastSurface = DetectSurface();
+            currentSurface = DetectSurface();
             nextSurfaceCheckTime = Time.time + 0.5f;
         }
 
-        if (!wasMoving || running != wasRunning)
+        bool surfaceChanged = currentSurface != lastSurface;
+        lastSurface = currentSurface;
+
+        if (!wasMoving || running != wasRunning || surfaceChanged)
         {
-            bool stateChanged = !wasMoving || running != wasRunning;
             wasMoving  = true;
             wasRunning = running;
-            if (stateChanged)
-            {
-                StopAllCoroutines();
-                PlayLoop(lastSurface, running);
-            }
+            StopAllCoroutines();
+            PlayLoop(lastSurface, running);
         }
     }
 
@@ -183,10 +192,41 @@ public class FootstepController : NetworkBehaviour
         // Check if we hit terrain
         var terrain = hit.collider.GetComponent<Terrain>();
         if (terrain != null)
-            return GetTerrainSurface(terrain, hit.point);
+        {
+            var surfaceMap = terrain.GetComponent<TerrainSurfaceMap>();
+            return surfaceMap != null
+                ? GetTerrainSurfaceFromMap(terrain, hit.point, surfaceMap)
+                : GetTerrainSurface(terrain, hit.point);
+        }
 
         // Check collider tag
         return GetTagSurface(hit.collider.tag);
+    }
+
+    private SurfaceType GetTerrainSurfaceFromMap(Terrain terrain, Vector3 worldPos, TerrainSurfaceMap surfaceMap)
+    {
+        TerrainData data = terrain.terrainData;
+        Vector3 terrainPos = terrain.transform.position;
+
+        int mapX = Mathf.RoundToInt((worldPos.x - terrainPos.x) / data.size.x * data.alphamapWidth);
+        int mapZ = Mathf.RoundToInt((worldPos.z - terrainPos.z) / data.size.z * data.alphamapHeight);
+        mapX = Mathf.Clamp(mapX, 0, data.alphamapWidth  - 1);
+        mapZ = Mathf.Clamp(mapZ, 0, data.alphamapHeight - 1);
+
+        float[,,] alphamap = data.GetAlphamaps(mapX, mapZ, 1, 1);
+
+        int dominantLayer = 0;
+        float maxWeight   = 0f;
+        for (int i = 0; i < alphamap.GetLength(2); i++)
+        {
+            if (alphamap[0, 0, i] > maxWeight)
+            {
+                maxWeight     = alphamap[0, 0, i];
+                dominantLayer = i;
+            }
+        }
+
+        return surfaceMap.GetSurface(dominantLayer);
     }
 
     private SurfaceType GetTerrainSurface(Terrain terrain, Vector3 worldPos)

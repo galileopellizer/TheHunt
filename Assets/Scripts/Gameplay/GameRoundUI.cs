@@ -17,6 +17,11 @@ public class GameRoundUI : MonoBehaviour
     [SerializeField] private GameObject enragePanel;
     [SerializeField] private TMP_Text enrageTimerText;
 
+    [Header("End Game")]
+    [SerializeField] private float endGameDelay = 5f;
+
+    private bool endSequenceStarted = false;
+
     private void Awake()
     {
         if (endPanel) endPanel.SetActive(false);
@@ -28,22 +33,39 @@ public class GameRoundUI : MonoBehaviour
         if (roundManager == null) return;
 
         var winner = roundManager.Winner.Value;
-        if (winner != GameWinner.None && endPanel && !endPanel.activeSelf)
+        if (winner != GameWinner.None && !endSequenceStarted)
         {
+            endSequenceStarted = true;
             if (enragePanel) enragePanel.SetActive(false);
             if (effigyProgressText) effigyProgressText.gameObject.SetActive(false);
-            endPanel.SetActive(true);
+
+            // Show winner text immediately
+            if (endPanel) endPanel.SetActive(true);
             if (winnerText)
                 winnerText.text = winner == GameWinner.Humans ? "HUMANS WIN" : "MONSTERS WIN";
 
-            DisableLocalPlayerControls();
-            ConfigureEndButtons();
+            // Hide buttons until delay elapses
+            if (returnToLobbyButton) returnToLobbyButton.SetActive(false);
+            if (leaveSessionButton)  leaveSessionButton.SetActive(false);
+
+            StartCoroutine(EndGameDelayed());
         }
 
         if (roundManager.Phase.Value == GamePhase.GameOver) return;
 
         UpdateEffigyProgressText();
         UpdateEnrageUI();
+    }
+
+    private System.Collections.IEnumerator EndGameDelayed()
+    {
+        yield return new WaitForSeconds(endGameDelay);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        DisableLocalPlayerControls();
+        ConfigureEndButtons();
     }
 
     private void UpdateEnrageUI()
@@ -113,6 +135,9 @@ public class GameRoundUI : MonoBehaviour
 
         var characterController = localBody.GetComponentInChildren<CharacterController>();
         if (characterController) characterController.enabled = false;
+
+        var attack = localBody.GetComponentInChildren<MonsterAttack>();
+        if (attack) attack.enabled = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

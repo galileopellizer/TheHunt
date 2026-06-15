@@ -1,5 +1,8 @@
 # Docs
 DOCS/
+Docs/
+Assets/Docs/
+CHANGES.md
 
 # Third-party asset packs
 Assets/Trees Collection Asset PBR/
@@ -106,6 +109,10 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 [Aa]ssets/[Ss]treamingAssets/aa.meta
 [Aa]ssets/[Ss]treamingAssets/aa/
+
+# Unity crash dumps
+mono_crash.*.blob
+mono_crash.mem.*.blob
 
 # OS
 .DS_Store

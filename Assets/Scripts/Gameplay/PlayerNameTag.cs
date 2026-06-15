@@ -91,6 +91,14 @@ public class PlayerNameTag : MonoBehaviour
             shouldShow = false;
         }
 
+        // Hide name tag if this player is the monster and is currently stealthed
+        if (shouldShow && ownerNetworkObject != null)
+        {
+            var stealth = ownerNetworkObject.GetComponent<MonsterStealth>();
+            if (stealth != null && (stealth.IsPassiveInvisible.Value || stealth.IsActiveInvisible.Value))
+                shouldShow = false;
+        }
+
         if (shouldShow && limitByDistance)
         {
             var cam = GetTargetCamera();
@@ -99,9 +107,11 @@ public class PlayerNameTag : MonoBehaviour
                 Vector3 targetPos = followTarget != null ? followTarget.position : followTransform.position;
                 float sqrDist = (cam.transform.position - targetPos).sqrMagnitude;
 
-                // Use a tighter distance limit if the local player is the monster
+                // Unlimited range in free cam, tight range for monster, normal otherwise
                 float effectiveMax = maxVisibleDistance;
-                if (IsLocalPlayerMonster())
+                if (IsLocalPlayerInFreeCam())
+                    effectiveMax = float.MaxValue;
+                else if (IsLocalPlayerMonster())
                     effectiveMax = maxVisibleDistanceForMonster;
 
                 if (sqrDist > effectiveMax * effectiveMax)
@@ -167,21 +177,26 @@ public class PlayerNameTag : MonoBehaviour
 
     private static Camera FindLocalPlayerCamera()
     {
-        if (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null)
-            return null;
+        if (NetworkManager.Singleton == null) return null;
 
-        var playerObject = NetworkManager.Singleton.LocalClient.PlayerObject;
-        if (playerObject == null)
-            return null;
-
-        var cams = playerObject.GetComponentsInChildren<Camera>(true);
-        for (int i = 0; i < cams.Length; i++)
+        foreach (var no in FindObjectsOfType<NetworkObject>())
         {
-            if (cams[i] != null && cams[i].enabled && cams[i].gameObject.activeInHierarchy)
-                return cams[i];
+            if (!no.IsOwner) continue;
+            if (no.GetComponent<GamePlayerBodyRole>() == null) continue;
+            var cams = no.GetComponentsInChildren<Camera>(true);
+            foreach (var c in cams)
+                if (c != null && c.enabled && c.gameObject.activeInHierarchy)
+                    return c;
         }
 
         return null;
+    }
+
+    private static bool IsLocalPlayerInFreeCam()
+    {
+        if (NetworkManager.Singleton?.LocalClient?.PlayerObject == null) return false;
+        var fc = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponentInChildren<FreeCamController>(true);
+        return fc != null && fc.enabled && fc.gameObject.activeInHierarchy;
     }
 
     private float nextMonsterRoleCheck;

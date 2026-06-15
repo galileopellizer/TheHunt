@@ -12,6 +12,15 @@ public class PlayerNameState : NetworkBehaviour
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
+    public NetworkVariable<int> CharacterIndex = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    private const int characterCount = 4;
+
+    public int GetCharacterIndex() => (int)(OwnerClientId % (ulong)characterCount);
+
     public override void OnNetworkSpawn()
     {
         if (!IsOwner)

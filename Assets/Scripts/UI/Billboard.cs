@@ -16,12 +16,6 @@ public class Billboard : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (NetworkManager.Singleton != null && !NetworkManager.Singleton.IsClient)
-            return;
-
-        if (netTransform != null && netTransform.enabled)
-            return;
-
         var cam = GetTargetCamera();
         if (!cam)
             return;
@@ -55,18 +49,17 @@ public class Billboard : MonoBehaviour
 
     private static Camera FindLocalPlayerCamera()
     {
-        if (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null)
-            return null;
+        if (NetworkManager.Singleton == null) return null;
 
-        var playerObject = NetworkManager.Singleton.LocalClient.PlayerObject;
-        if (playerObject == null)
-            return null;
-
-        var cams = playerObject.GetComponentsInChildren<Camera>(true);
-        for (int i = 0; i < cams.Length; i++)
+        // Search all NetworkObjects for the locally owned game body with a camera
+        foreach (var no in FindObjectsOfType<NetworkObject>())
         {
-            if (cams[i] != null && cams[i].enabled && cams[i].gameObject.activeInHierarchy)
-                return cams[i];
+            if (!no.IsOwner) continue;
+            if (no.GetComponent<GamePlayerBodyRole>() == null) continue;
+            var cams = no.GetComponentsInChildren<Camera>(true);
+            foreach (var c in cams)
+                if (c != null && c.enabled && c.gameObject.activeInHierarchy)
+                    return c;
         }
 
         return null;
